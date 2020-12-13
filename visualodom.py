@@ -38,18 +38,46 @@ enable_nms = True
 
 # Change sequence value to run on different image sets.
 # Report used 0, 2, 5, and 9.
-sequence = 9
+sequence = 0
+
+# Size of trajectory plot for the sequences tested (trial and error
+# to figure out the right size so the trajectory doesn't go outside the
+# plot).
+trajectory_size_dict = {
+    0: (600, 800, 3),
+    2: (1200, 800, 3),
+    5: (450, 800, 3),
+    9: (800, 800, 3)
+}
+
+# Offset from bottom left corner of trajectory plot to call (0,0).
+# Each is provided as (x offset, y offset).
+trajectory_start_dict = {
+    0: (400, 100),
+    2: (100, 100),
+    5: (400, 150),
+    9: (250, 200)
+}
+
+# Number of images to read from each sequence.
+sequence_num_images_dict = {
+    0: 4000,
+    2: 4000,
+    5: 2500,
+    9: 1500
+}
 
 # Path to directory that contains the data_odometry_poses and
 # data_odometry_color folders from the Kitti Benchmark data set.
 # <add the correct path here for the computer being used>
 path = ""
 
+# Feature detectors to use.
 fast = cv2.FastFeatureDetector_create(threshold=20, nonmaxSuppression=True)
 gftt = cv2.GFTTDetector_create(maxCorners=3000)
-akaze = cv2.AKAZE_create()
 agast = cv2.AgastFeatureDetector_create()
 
+# Color for each detector's path on trajectory plot.
 detector_color_dict = {
     "FAST": (102, 252, 255),
     "GFTT": (0, 0, 255),
@@ -102,11 +130,9 @@ def getTransformation(pose):
 def featureDetection(img, type="FAST"):
     keypoints = None
     if type == "FAST":
-        keypoints = akaze.detect(img)
+        keypoints = fast.detect(img)
     elif type == "GFTT":
         keypoints = gftt.detect(img)
-    elif type == "AKAZE":
-        keypoints = akaze.detect(img)
     elif type == "AGAST":
         keypoints = agast.detect(img)
 
@@ -199,7 +225,9 @@ def main():
     # trajectory image.
     # Use second line to load trajectory image and draw current feature's trajectory
     # over it.
-    trajectory = np.ones((800, 800, 3), dtype=np.uint8)  # Equivalent to cv2.CV_8UC3
+    trajectory_size = trajectory_size_dict[sequence]
+    start_offset = trajectory_start_dict[sequence]
+    trajectory = np.ones(trajectory_size, dtype=np.uint8)  # Equivalent to cv2.CV_8UC3
     # trajectory = cv2.imread(f"trajectory{sequence:02}.png")
 
     cv2.namedWindow("Road facing camera")
@@ -207,7 +235,8 @@ def main():
 
     total_error = 0
     start = time.time()
-    for i in range(2, 1502):
+    num_images = sequence_num_images_dict[sequence]
+    for i in range(2, num_images+2):
         # Get ground truth rotation and translation.
         R_gt, t_gt = getTransformation(poses[index])
 
@@ -251,15 +280,15 @@ def main():
         # (x,y) coordinate. Orientation doesn't matter for plot, so we don't consider
         # R here (if we needed a bearing for the car, then we probably would have to
         # use R as well).
-        x = int(t_f[0][0]) + 200
-        y = 800 - (int(t_f[2][0]) + 200)
+        x = int(t_f[0][0]) + start_offset[0]
+        y = trajectory_size[0] - (int(t_f[2][0]) + start_offset[1])
         cv2.circle(trajectory, (x,y), 1, detector_color_dict[type], 2)
 
         # Ground truth location.
         # Uncomment this line after the first run on a sequence to avoid re-drawing
         # the ground truth poses every time.
-        x_gt = int(t_gt[0][0]) + 200
-        y_gt = 800 - (int(t_gt[2][0]) + 200)
+        x_gt = int(t_gt[0][0]) + start_offset[0]
+        y_gt = trajectory_size[0] - (int(t_gt[2][0]) + start_offset[1])
         cv2.circle(trajectory, (x_gt,y_gt), 1, (0,255,0), 2)
 
         # Display text for current position.
@@ -277,12 +306,13 @@ def main():
     end = time.time()
     cv2.imwrite(f"trajectory{sequence:02}.png", trajectory)
     cv2.destroyAllWindows()
-    print(f"Total error for {type}: {total_error:.4f}")
-    print(f"Total time: {end-start} seconds")
-    print(f"Average fps: {1500/(end-start):.4f}")
+    print(f"Total error for {type}, sequence {sequence}: {total_error:.4f}")
+    print(f"Total time: {end-start} seconds, # of frames: {num_images}")
+    print(f"Average fps: {num_images/(end-start):.4f}")
 
     fig, ax = plt.subplots()
-    extent = (-250, 550, -200, 600)
+    extent = (-start_offset[0], trajectory_size[1]-start_offset[0],
+              -start_offset[1], trajectory_size[0]-start_offset[1])
     rgb_trajectory = cv2.cvtColor(trajectory, cv2.COLOR_BGR2RGB)
     im = ax.imshow(rgb_trajectory, origin='upper', extent=extent)
     plt.show()
