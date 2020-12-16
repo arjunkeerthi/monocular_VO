@@ -31,11 +31,6 @@ import math
 import time
 from matplotlib import pyplot as plt
 
-cap = cv2.VideoCapture(0)
-orb = cv2.ORB_create(nfeatures=3000)
-bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-enable_nms = True
-
 # Change sequence value to run on different image sets.
 # Report used 0, 2, 5, and 9.
 sequence = 0
