@@ -1,6 +1,6 @@
 """
 Credit goes to Avi Singh: https://github.com/avisingh599/mono-vo.
-The code below The code below builds off of his C++ code, with modifications.
+The code below builds off of his C++ code, with modifications.
 
 The MIT License
 
@@ -46,7 +46,7 @@ trajectory_size_dict = {
 }
 
 # Offset from bottom left corner of trajectory plot to call (0,0).
-# Each is provided as (x offset, y offset).
+# Each is provided as (x offset, y offset) = (col offset, row offset).
 trajectory_start_dict = {
     0: (400, 100),
     2: (100, 100),
@@ -85,7 +85,7 @@ detector_color_dict = {
 # a list of 12 numbers (projection matrix is [R | t], where R is 3x3 rotation
 # matrix and t is 3x1 translation vector. After testing this out, it appears
 # that each line gives these matrices with respect to the starting pose (no need
-# to chain every prior together to get current position). So, first 3 numbers is
+# to chain every matrix together to get current position). So, first 3 numbers is
 # first row of R, 4th number is 1st element of t. 5th-7th give second row of R,
 # 8th gives second element of t. And finally 9th-11th give third row of R, 12th
 # gives third element of t.
@@ -119,7 +119,7 @@ def getTransformation(pose):
     return rotation, translation
 
 
-# Extract FAST features from image and convert to a numpy array of points.
+# Extract features from image and convert to a numpy array of points.
 # Returned array has shape Nx2, where N is the number of features. x is first col,
 # y is second col.
 def featureDetection(img, type="FAST"):
@@ -190,13 +190,12 @@ def main():
     points1, points2 = featureTracking(img1, img2, points1)
 
     # Camera matrix extracted from calib.txt for sequence 00.
-    # Format of this file found from this answer:
-    # https://stackoverflow.com/a/50211379.
+    # Format of this file found from this answer: https://stackoverflow.com/a/50211379.
     # To summarize: 5 lines, first four define projection matrix for each of
     # the 4 cameras: 1st - left grayscale, 2nd - right grayscale, 3rd - left rgb,
-    # 4th - right rgb. I am using the left camera images, so I'm using the 3rd
-    # camera. Each line 12 numbers, defining 3x4 projection matrix flattened:
-    # [C | t], where C is the camera matrix. So I just copied those numbers over
+    # 4th - right rgb. I am using the left camera images, so the 3rd camera.
+    # Each line is 12 numbers, defining the 3x4 projection matrix flattened:
+    # [C | t], where C is the camera matrix. I just copied the numbers for C over
     # to here.
     camera_matrix = np.array([
         [7.18856e+02, 0.0, 6.071928e+02],
@@ -215,13 +214,15 @@ def main():
     R_f = R
     t_f = t
 
-    # Will store plot of vehicle's trajectory.
+    # Size and offset for sequence
+    trajectory_size = trajectory_size_dict[sequence]
+    start_offset = trajectory_start_dict[sequence]
+    
+    # Stores plot of vehicle's trajectory.
     # Use first line when running on a sequence for the first time to initialize
     # trajectory image.
     # Use second line to load trajectory image and draw current feature's trajectory
     # over it.
-    trajectory_size = trajectory_size_dict[sequence]
-    start_offset = trajectory_start_dict[sequence]
     trajectory = np.ones(trajectory_size, dtype=np.uint8)  # Equivalent to cv2.CV_8UC3
     # trajectory = cv2.imread(f"trajectory{sequence:02}.png")
 
@@ -280,7 +281,7 @@ def main():
         cv2.circle(trajectory, (x,y), 1, detector_color_dict[type], 2)
 
         # Ground truth location.
-        # Uncomment this line after the first run on a sequence to avoid re-drawing
+        # Uncomment this section after the first run on a sequence to avoid re-drawing
         # the ground truth poses every time.
         x_gt = int(t_gt[0][0]) + start_offset[0]
         y_gt = trajectory_size[0] - (int(t_gt[2][0]) + start_offset[1])
@@ -305,6 +306,7 @@ def main():
     print(f"Total time: {end-start} seconds, # of frames: {num_images}")
     print(f"Average fps: {num_images/(end-start):.4f}")
 
+    # Display trajectory with axis.
     fig, ax = plt.subplots()
     extent = (-start_offset[0], trajectory_size[1]-start_offset[0],
               -start_offset[1], trajectory_size[0]-start_offset[1])
