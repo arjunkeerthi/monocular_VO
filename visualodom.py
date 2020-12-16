@@ -1,6 +1,6 @@
 """
 Credit goes to Avi Singh: https://github.com/avisingh599/mono-vo.
-The code below The code below builds of his C++ code, with modifications..
+The code below The code below builds off of his C++ code, with modifications.
 
 The MIT License
 
