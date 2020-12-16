@@ -1,7 +1,7 @@
 # monocular_VO
-This repo provides a Python implementation of a basic visual odometry algorithm. 
+This repo provides a Python implementation of a basic visual odometry algorithm. This program was part of a final project for one of my classes (see report [here](EECE6356-SemesterReport-ArjunKeerthi.pdf)).
 
-Credit to Avi Singh, whose C++ code was referred to extensively for this program: https://github.com/avisingh599/mono-vo.git.
+Credit to Avi Singh, whose [C++ code](https://github.com/avisingh599/mono-vo.git) was referred to extensively for this program.
 
 
 
